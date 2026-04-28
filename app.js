@@ -193,52 +193,140 @@ function entrenar(data, epochs = 500, lr = 0.1) {
 }
 
 function generarExplicacion(d) {
-  let texto = "🔍 Explicación generada\n\n";
+  let positivos = "";
+  let negativos = "";
 
-  // POSITIVOS
-  if (d.rating >= 4) {
-    texto += "✔ Buen rating del producto (" + d.rating + ")\n";
+  // =========================
+  // ✔ FACTORES POSITIVOS
+  // =========================
+
+    // Rating
+    if (d.rating >= 4.5) {
+      positivos += "✔ Excelente rating del producto (" + d.rating + ")\n";
+    } else if (d.rating >= 4) {
+      positivos += "✔ Buen rating del producto (" + d.rating + ")\n";
+    }
+
+    // Reviews
+    if (d.reviews > 1000) {
+      positivos += "✔ Muchas reseñas → alta confianza del público\n";
+    } else if (d.reviews > 500) {
+      positivos += "✔ Cantidad aceptable de reseñas\n";
+    }
+
+    // Tipo de usuario
+    if (d.tipoUsuario === "analitico") {
+      positivos += "✔ Usuario analítico valora evidencia (rating y reseñas)\n";
+    }
+
+    if (d.tipoUsuario === "impulsivo" && d.influencer) {
+      positivos += "✔ Influencer impacta fuertemente en usuario impulsivo\n";
+    }
+
+    // Demo
+    if (d.demo) {
+      positivos += "✔ Experiencia directa con el producto reduce incertidumbre\n";
+    }
+
+    // Canal + edad (muy importante en tu modelo)
+    if (d.canal === "redes" && d.edad < 35) {
+      positivos += "✔ Canal adecuado: redes sociales para usuario joven\n";
+    }
+
+    if (d.canal === "tv" && d.edad >= 35 && d.edad < 55) {
+      positivos += "✔ Canal adecuado: televisión para público adulto\n";
+    }
+
+    if (d.canal === "radio" && d.edad >= 50) {
+      positivos += "✔ Canal adecuado: radio para segmento mayor\n";
+    }
+
+    // Urgencia
+    if (d.urgencia > 0.7) {
+      positivos += "✔ Alta urgencia impulsa la decisión de compra\n";
+    }
+
+    // Experiencia + precio (INTERACCIÓN REAL)
+    if (d.experiencia === 2 && d.precioBucket >= 5) {
+      positivos += "✔ Usuario con experiencia tolera precios elevados\n";
+    }
+
+    // Nicho + precio
+    if (d.nicho === "tecnologia" && d.precioBucket >= 4) {
+      positivos += "✔ En tecnología, precios altos pueden ser percibidos como calidad\n";
+    }
+
+    if (d.nicho === "transportes" && d.precioBucket >= 5) {
+      positivos += "✔ En transportes, precios altos pueden justificarse por necesidad\n";
+    }
+
+    // =========================
+    // ⚠ FACTORES NEGATIVOS
+    // =========================
+
+    // Precio alto general
+    if (d.precioBucket >= 5) {
+      negativos += "⚠ Precio elevado puede frenar la decisión\n";
+    }
+
+    // Reviews bajas
+    if (d.reviews < 100) {
+      negativos += "⚠ Muy pocas reseñas → baja confianza\n";
+    } else if (d.reviews < 500) {
+      negativos += "⚠ Pocas reseñas → genera dudas\n";
+    }
+
+    // Rating bajo
+    if (d.rating <= 2) {
+      negativos += "⚠ Rating bajo reduce fuertemente la intención de compra\n";
+    }
+
+    // Urgencia baja
+    if (d.urgencia < 0.3) {
+      negativos += "⚠ Baja urgencia disminuye la probabilidad de acción\n";
+    }
+
+    // Usuario desconfiado
+    if (d.tipoUsuario === "desconfiado") {
+      if (d.reviews < 100) {
+        negativos += "⚠ Usuario desconfiado + pocas reseñas → alto rechazo\n";
+      } else if (d.reviews < 500) {
+        negativos += "⚠ Usuario desconfiado percibe riesgo en el producto\n";
+      }
+    }
+
+    // Experiencia baja + precio alto
+    if (d.experiencia === 0 && d.precioBucket >= 5) {
+      negativos += "⚠ Usuario sin experiencia evita precios altos\n";
+    }
+
+    // Nicho sensible al precio
+    if (d.nicho === "alimentos" && d.precioBucket >= 3) {
+      negativos += "⚠ En alimentos, precios altos reducen el interés\n";
+    }
+
+    // =========================
+    // 📊 OUTPUT FINAL
+    // =========================
+
+    let texto = "🔍 Explicación del resultado\n\n";
+
+    if (positivos) {
+      texto += "✔ Factores que aumentan la probabilidad:\n";
+      texto += positivos + "\n";
+    }
+
+    if (negativos) {
+      texto += "⚠ Factores que reducen la probabilidad:\n";
+      texto += negativos;
+    }
+
+    if (!positivos && !negativos) {
+      texto += "No se identificaron factores claros en la decisión.";
+    }
+
+    return texto;
   }
-
-  if (d.reviews > 1000) {
-    texto += "✔ Muchas reseñas → genera confianza\n";
-  }
-
-  if (d.tipoUsuario === "analitico") {
-    texto += "✔ Usuario analítico valora evidencia\n";
-  }
-
-  if (d.tipoUsuario === "impulsivo" && d.influencer) {
-    texto += "✔ Influencer impacta en usuario impulsivo\n";
-  }
-
-  if (d.demo) {
-    texto += "✔ Experiencia directa reduce riesgo\n";
-  }
-
-  if (d.canal === "redes" && d.edad < 35) {
-    texto += "✔ Canal adecuado (redes para usuario joven)\n";
-  }
-
-  if (d.canal === "tv" && d.edad >= 35) {
-    texto += "✔ Canal adecuado (TV para adulto)\n";
-  }
-
-  if (d.canal === "radio" && d.edad >= 50) {
-    texto += "✔ Canal adecuado (radio para mayor edad)\n";
-  }
-
-  // NEGATIVOS
-  if (d.precioBucket >= 5) {
-    texto += "\n⚠ Precio elevado\n";
-  }
-
-  if (d.reviews < 50) {
-    texto += "⚠ Pocas reseñas → baja confianza\n";
-  }
-
-  return texto;
-}
 
 let modelo;
 
